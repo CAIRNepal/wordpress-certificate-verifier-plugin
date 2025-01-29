@@ -89,6 +89,12 @@ When importing certificates via CSV:
 - WordPress nonce verification for forms
 - Error logging for troubleshooting
 
+## Screen shots
+
+![image](https://github.com/user-attachments/assets/01920bda-5366-4de1-9714-f9f8782188de)
+
+![image](https://github.com/user-attachments/assets/d004abfb-cc24-4e1b-b4b4-68c1278b5215)
+
 ## Support
 
 For issues, questions, or suggestions, please create an issue in the repository or contact the plugin author.
