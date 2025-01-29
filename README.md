@@ -94,6 +94,8 @@ When importing certificates via CSV:
 
 ![image](https://github.com/user-attachments/assets/d004abfb-cc24-4e1b-b4b4-68c1278b5215)
 
+Link: [https://verify.cair-nepal.org/](https://verify.cair-nepal.org/)
+
 ## Support
 
 For issues, questions, or suggestions, please create an issue in the repository or contact the plugin author.
