@@ -21,10 +21,9 @@ A WordPress plugin that allows organizations to manage and verify certificates. 
 ## Installation
 
 1. Download the plugin files
-2. Upload the plugin folder to the `/wp-content/plugins/` directory
-3. Activate the plugin through the 'Plugins' menu in WordPress
-4. The plugin will automatically create the required database table
-
+2. Zip `certificate-verifier` directory
+3. On the WordPress admin, add new plugin and upload the compressed plugin
+3. Activate the plugin  
 ## Usage
 
 ### Admin Interface
