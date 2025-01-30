@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Certificate Verifier
  * Description: Allows users to add certificate details via form or CSV, view, edit, verify, and export all certificate details in CSV.
- * Version: 2.9
+ * Version: 3.0
  * Author: Tek Raj Chhetri
  */
 
@@ -472,7 +472,6 @@ function cv_verification_form() {
             echo "<div class='cv-result success'>";
             echo "<h3>Certificate Verified ✓</h3>";
             echo "<p><strong>Name:</strong> " . esc_html($certificate->name) . "</p>";
-            echo "<p><strong>Email:</strong> " . esc_html($certificate->email) . "</p>";
             echo "<p><strong>Certificate Number:</strong> " . esc_html($certificate->certificate_number) . "</p>";
             echo "<p><strong>Issue Date:</strong> " . esc_html($certificate->issued_date) . "</p>";
             echo "</div>";
