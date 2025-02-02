@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Certificate Verifier
  * Description: Allows users to add certificate details via form or CSV, view, edit, verify, and export all certificate details in CSV.
- * Version: 3.0
+ * Version: 3.4
  * Author: Tek Raj Chhetri
  */
 
@@ -65,6 +65,24 @@ function cv_export_csv() {
 }
 add_action('admin_init', 'cv_export_csv');
 
+
+// Handle bulk delete
+function cv_handle_bulk_delete() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'certificates';
+    
+    if (isset($_POST['cv_bulk_delete']) && !empty($_POST['cv_bulk_ids'])) {
+        $ids = array_map('intval', $_POST['cv_bulk_ids']);
+        $ids_placeholder = implode(',', array_fill(0, count($ids), '%d'));
+        $query = "DELETE FROM $table_name WHERE id IN ($ids_placeholder)";
+        
+        $wpdb->query($wpdb->prepare($query, $ids));
+        echo '<div class="updated notice"><p>Selected certificates deleted successfully!</p></div>';
+    }
+}
+add_action('admin_init', 'cv_handle_bulk_delete');
+
+
 // Handle form submissions
 function cv_handle_form_submissions() {
     global $wpdb;
@@ -97,13 +115,40 @@ function cv_handle_form_submissions() {
             fgetcsv($file);
             while (($data = fgetcsv($file)) !== FALSE) {
                 if (count($data) >= 4) {
+                    // Sanitize input
+                    $date_input = trim(sanitize_text_field($data[3]));
+
+                    // Detect possible formats including short year format
+                    $formats = ['m/d/Y', 'm-d-Y', 'Y/m/d', 'Y-m-d', 'n/j/y', 'n-j-y'];
+
+                    $formatted_date = null;
+
+                    // Try multiple formats until a valid date is found
+                    foreach ($formats as $format) {
+                        $date = DateTime::createFromFormat($format, $date_input);
+                        if ($date) {
+                            // Ensure year is in four-digit format
+                            $year = $date->format('Y');
+                            if ($year < 2000) {
+                                $year += 2000; // Convert 2-digit year to four-digit
+                            }
+                            $formatted_date = $date->setDate($year, $date->format('m'), $date->format('d'))->format('Y-m-d');
+                            break;
+                        }
+                    }
+
+                    // Fallback if no valid date found
+                    if (!$formatted_date) {
+                        $formatted_date = null; // Or handle invalid input as needed
+                    }
+
                     $wpdb->insert(
                         $table_name,
                         array(
                             'name' => sanitize_text_field($data[0]),
                             'email' => sanitize_email($data[1]),
                             'certificate_number' => sanitize_text_field($data[2]),
-                            'issued_date' => sanitize_text_field($data[3])
+                            'issued_date' => $formatted_date
                         ),
                         array('%s', '%s', '%s', '%s')
                     );
@@ -314,29 +359,57 @@ function cv_admin_page() {
     
     echo '<div class="cv-section">';
     echo '<h2>Existing Certificates</h2>';
+    echo '<form method="post" class="cv-form">';
+    echo '<input type="submit" name="cv_bulk_delete" value="Bulk Delete" class="cv-btn cv-btn-danger">';
     echo '<table class="cv-table">';
-    echo '<tr><th>Name</th><th>Email</th><th>Certificate Number</th><th>Issued Date</th><th>Actions</th></tr>';
+    // echo '<tr><th>Name</th><th>Email</th><th>Certificate Number</th><th>Issued Date</th><th>Actions</th></tr>';
+    // foreach ($certificates as $certificate) {
+    //     echo "<tr id='certificate-{$certificate->id}'>
+    //         <form method='post'>
+    //         <td><input type='text' name='cv_name' value='{$certificate->name}' required readonly></td>
+    //         <td><input type='email' name='cv_email' value='{$certificate->email}' required readonly></td>
+    //         <td><input type='text' name='cv_certificate_number' value='{$certificate->certificate_number}' required readonly></td>
+    //         <td><input type='date' name='cv_issued_date' value='{$certificate->issued_date}' required readonly></td>
+    //         <td>
+    //             <input type='hidden' name='cv_id' value='{$certificate->id}'>
+    //             <button type='button' onclick='toggleEdit({$certificate->id})' class='cv-btn cv-btn-secondary edit-btn'>Edit</button>
+    //             <input type='submit' name='cv_update' value='Update' class='cv-btn cv-btn-primary update-btn' style='display:none;'>
+    //             <input type='submit' name='cv_delete' value='Delete' class='cv-btn cv-btn-danger'>
+    //         </td>
+    //         </form>
+    //     </tr>";
+    // }
+    echo '<tr><th><input type="checkbox" id="cv_select_all"></th><th>Name</th><th>Email</th><th>Certificate Number</th><th>Issued Date</th><th>Actions</th></tr>';
     foreach ($certificates as $certificate) {
-        echo "<tr id='certificate-{$certificate->id}'>
-            <form method='post'>
-            <td><input type='text' name='cv_name' value='{$certificate->name}' required readonly></td>
-            <td><input type='email' name='cv_email' value='{$certificate->email}' required readonly></td>
-            <td><input type='text' name='cv_certificate_number' value='{$certificate->certificate_number}' required readonly></td>
-            <td><input type='date' name='cv_issued_date' value='{$certificate->issued_date}' required readonly></td>
+        echo "<tr>
+            <td><input type='checkbox' name='cv_bulk_ids[]' value='{$certificate->id}' class='cv_bulk_checkbox'></td>
+            <td>{$certificate->name}</td>
+            <td>{$certificate->email}</td>
+            <td>{$certificate->certificate_number}</td>
+            <td>{$certificate->issued_date}</td>
             <td>
-                <input type='hidden' name='cv_id' value='{$certificate->id}'>
-                <button type='button' onclick='toggleEdit({$certificate->id})' class='cv-btn cv-btn-secondary edit-btn'>Edit</button>
-                <input type='submit' name='cv_update' value='Update' class='cv-btn cv-btn-primary update-btn' style='display:none;'>
-                <input type='submit' name='cv_delete' value='Delete' class='cv-btn cv-btn-danger'>
+                <form method='post' style='display:inline;'>
+                    <input type='hidden' name='cv_id' value='{$certificate->id}'>
+                    <input type='submit' name='cv_delete' value='Delete' class='cv-btn cv-btn-danger'>
+                </form>
             </td>
-            </form>
         </tr>";
     }
+
     echo '</table>';
+
+     echo '</form>';
+
     echo '</div>';
     
     // Add JavaScript for edit functionality
     ?>
+    <script type="text/javascript">
+document.getElementById('cv_select_all').addEventListener('click', function() {
+    let checkboxes = document.querySelectorAll('.cv_bulk_checkbox');
+    checkboxes.forEach(cb => cb.checked = this.checked);
+});
+</script>
     <script type="text/javascript">
     function toggleEdit(id) {
         const row = document.getElementById('certificate-' + id);
@@ -471,7 +544,7 @@ function cv_verification_form() {
         if ($certificate) {
             echo "<div class='cv-result success'>";
             echo "<h3>Certificate Verified ✓</h3>";
-            echo "<p><strong>Name:</strong> " . esc_html($certificate->name) . "</p>";
+            echo "<p><strong>Name:</strong> " . esc_html($certificate->name) . "</p>"; 
             echo "<p><strong>Certificate Number:</strong> " . esc_html($certificate->certificate_number) . "</p>";
             echo "<p><strong>Issue Date:</strong> " . esc_html($certificate->issued_date) . "</p>";
             echo "</div>";
